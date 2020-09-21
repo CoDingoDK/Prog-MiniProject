@@ -1,5 +1,13 @@
 import csv, numpy
 
+class Team:
+    
+    def __init__(self, teamname):
+        self.teamname = teamname
+
+    def
+    def printRoster(self):
+        print(f'Roster info for\t{self.teamname}: ')
 
 class Player:
     def __init__(self,
@@ -40,7 +48,7 @@ class Player:
 with open('res/data.csv', mode='r') as csv_file:
     csv_reader = csv.DictReader(csv_file)
     line_count = 0
-    array = [0 for i in range(0, sum(1 for row in csv_file) )]
+    array = [0 for i in range(0, 500)]
     for row in csv_reader:
         if line_count == 0:
             print(f'Column names are {", ".join(row)}')
@@ -49,3 +57,5 @@ with open('res/data.csv', mode='r') as csv_file:
         array[line_count].playerData()
         line_count += 1
     print(f'Processed {line_count} lines.')
+    teamA = Team(input("Type your teamname\n"))
+    teamA.printRoster()
