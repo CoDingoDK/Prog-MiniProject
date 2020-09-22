@@ -1,6 +1,25 @@
 import csv, numpy as np
 
 
+class Database:
+    def __init__(self, database):
+        self.database = database
+
+    # TOP,MID,ADC,SUPPORT,JUNGLE
+    def getAllLaners(self, lane):
+        res = []
+        for i in self.database:
+            if isinstance(i,Player):
+                i.position == lane
+                res.append(i)
+        return res
+
+    def searchForPlayer(self, player):
+        for i in self.database:
+            if i.name.lower() == player.lower():
+                return i
+
+            
 class Player:
     def __init__(self,
                  player,
@@ -8,9 +27,6 @@ class Player:
                  gamecount,
                  winrate,
                  kda,
-                 avgkills,
-                 avgdeath,
-                 avgassists,
                  csPerMin,
                  GPerMin,
                  kpPercent,
@@ -20,9 +36,6 @@ class Player:
         self.gamecount = gamecount
         self.winrate = winrate
         self.kda = kda
-        self.avgkills = avgkills
-        self.avgdeath = avgdeath
-        self.avgassists = avgassists
         self.csPerMin = csPerMin
         self.GPerMin = GPerMin
         self.kpPercent = kpPercent
@@ -63,9 +76,6 @@ class Team:
         print(f'Roster info for\t{self.teamname}: {res}')
 
 
-
-
-
 # Player,Position,Games,Win rate,KDA,CSM,GPM,KP%,DMG%,DPM,GD@15,FB %
 
 with open('res/data.csv', mode='r') as csv_file:
@@ -76,7 +86,7 @@ with open('res/data.csv', mode='r') as csv_file:
         if line_count == 0:
             print(f'Column names are {", ".join(row)}')
             line_count += 1
-        array[line_count] = Player(row["Player"], row["Position"], row["Games"], row["Win rate"], row["KDA"], row["CSM"], row["GPM"], row["KP%"], row["DMG%"], row["DPM"], row["GD@15"], row["FB %"])
+        array[line_count] = Player(row["Player"], row["Position"], row["Games"], row["Win rate"], row["KDA"], row["CSM"], row["GPM"], row["KP%"], row["DMG%"])
         array[line_count].playerData()
         line_count += 1
     print(f'Processed {line_count} lines.')
@@ -92,3 +102,4 @@ with open('res/data.csv', mode='r') as csv_file:
 
 
     teamA.printRoster()
+    DB = Database(array)
