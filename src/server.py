@@ -1,38 +1,37 @@
 import csv
-import socket, pickle, threading
+import pickle
+import socket
+import threading
 from collections import deque
-from uuid import getnode as get_mac
+
 from const import *
 from game_classes import *
+from helpers import s_print
 from networking_classes import *
 
 
 def _setup_database():
     with open('res/data.csv', mode='r') as csv_file:
         csv_reader = csv.DictReader(csv_file)
-        line_count = 0
         array = []
         for row in csv_reader:
-            # print(\nf'Column names are {", ".join(row)}')
             array.append(
                 Player(row["Player"], row["Position"], row["Games"], row["Win rate"], row["KDA"], row["CSM"],
                        row["GPM"],
                        row["KP%"], row["DMG%"]))
-            # print(\narray[line_count])
-        # print(\nf'Processed {line_count} lines.')
         return Database(array)
 
 
 def send_packet(client, ACTION, obj=None):
     packet = pickle.dumps(Packet(ACTION, obj))
-    print(f'\nPacket sent to {client.addr}')
+    s_print(f'Packet sent to {client.addr}')
 
     client.client_socket.send(packet)
 
 
 class Server:
     def __init__(self, port):
-        print("\nSERVER: server Initialized")
+        s_print("SERVER: server Initialized")
         self.request_queue = deque()
         self.sock = socket.socket()
         self.addr = ('127.0.0.1', port)
@@ -51,7 +50,7 @@ class Server:
         while self.isRunning:
             if len(self.clients) < 2:
                 c, addr = self.sock.accept()
-                print(f'\nSERVER: Connection received from {addr}')
+                s_print(f'SERVER: Connection received from {addr}')
                 packet = pickle.loads(c.recv(50000))
                 client = Connection(c, addr)
                 if packet.ACTION == CLIENT_REQUEST_CONNECT and client not in self.clients:
@@ -60,7 +59,7 @@ class Server:
                     t = threading.Thread(target=self._on_new_client, args=(client,))
                     t.setName(f'Server connection receiver thread for client on {addr}')
                     t.start()
-                    print(f'\nSERVER: Client added, total amount of clients is now {len(self.clients)}')
+                    # s_print(f'SERVER: Client added, total amount of clients is now {len(self.clients)}')
 
     def responder(self):
         while self.isRunning:
@@ -75,7 +74,7 @@ class Server:
                 enemy_client = c
         if packet.ACTION == CLIENT_REQUEST_DATABASE:
             # Team object requested
-            print(f'\nSERVER: Client requested database')
+            s_print(f'SERVER: Client requested database')
             for c in self.clients:
                 send_packet(c, SERVER_UPDATE_DATABASE, self.database)
 
@@ -95,9 +94,9 @@ class Server:
                     send_packet(client, SERVER_UPDATE_TEAMS, (client.team, enemy_client.team))
                     send_packet(enemy_client, SERVER_UPDATE_TEAMS, (enemy_client.team, client.team))
                 else:
-                    print(f'{client.team.teamname} tried to draft an already drafted player')
+                    s_print(f'{client.team.teamname} tried to draft an already drafted player')
             else:
-                print(f'{client.addr} tried to draft without having a team')
+                s_print(f'{client.addr} tried to draft without having a team')
         elif packet.ACTION == CLIENT_REQUEST_MATCH:
             # Match object requested
             None
@@ -107,7 +106,8 @@ class Server:
             try:
                 packet = connection.client_socket.recv(50000)
             except ConnectionAbortedError:
-                print("\nsocket closed")
+                break
+            except ConnectionResetError:
                 break
             unpickled_packet: Packet = pickle.loads(packet)
             if unpickled_packet.ACTION == CLIENT_REQUEST_EXIT:
