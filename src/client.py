@@ -1,20 +1,17 @@
 import socket, pickle
 import threading
-from uuid import getnode as get_mac
-
-from sqlalchemy.util import portable_instancemethod
-
 from const import *
 from game_classes import Database, Team
+from helpers import s_print
 from networking_classes import Packet
 
 
 class Client:
     def __init__(self, port):
-        print(f'\nClient initialized')
-        self.mac = get_mac()
+        s_print(f'Client initialized')
         self.sock = socket.socket()
         self.addr = ('127.0.0.1', port)
+        self.sock.connect(self.addr)
         self.database: [Database] = []
         self.team: [Team] = []
         self.enemy_team: [Team] = []
@@ -26,23 +23,28 @@ class Client:
         self.receiverThread.start()
 
     def receiver(self):
-        self.sock.connect(self.addr)
         while self.isRunning:
-            pickled_obj = self.sock.recv(50000)
+            try:
+                pickled_obj = self.sock.recv(50000)
+            except ConnectionAbortedError:
+                break
+            except ConnectionResetError:
+                s_print(f'CLIENT @ {self.sock.getsockname()}: Exiting')
+                break
             packet = pickle.loads(pickled_obj)
             self._receiver_handler(packet)
             if packet.ACTION == CLIENT_REQUEST_EXIT:
-                print(f'\nCLIENT @ {self.sock.getsockname()}:Exiting')
+                s_print(f'CLIENT @ {self.sock.getsockname()}: Exiting')
                 self.isRunning = False
                 break
-            print(f'\nCLIENT @ {self.sock.getsockname()}: Client received packet from server at {self.addr}')
+            s_print(f'CLIENT @ {self.sock.getsockname()}: Client received packet from server at {self.addr}')
         self.sock.close()
 
     def send(self, ACTION, obj=None):
         packet = Packet(ACTION, obj)
         pickled_packet = pickle.dumps(packet)
         self.sock.send(pickled_packet)
-        print(f'\nCLIENT @ {self.sock.getsockname()}:: Client sent packet to server at {self.addr}')
+        s_print(f'CLIENT @ {self.sock.getsockname()}:: Client sent packet to server at {self.addr}')
 
     def _receiver_handler(self, packet):
         if packet.ACTION == SERVER_UPDATE_DATABASE:

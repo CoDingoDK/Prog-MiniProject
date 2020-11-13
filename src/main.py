@@ -1,14 +1,8 @@
-import time
-
+from game_classes import *
 from client import Client
 from server import Server
-from game_classes import *
 from const import *
-import os
-
-
-def clear(): os.system('cls')
-
+import time
 
 if __name__ == "__main__":
     port = 56005
@@ -24,8 +18,6 @@ if __name__ == "__main__":
     client1.send(ACTION=CLIENT_REQUEST_TEAM_NAME, obj="Name")
     client1.send(ACTION=CLIENT_REQUEST_EXIT)
 
-    time.sleep(1)
-    print("kek")
     # if __name__ == "__main__":
 #         pickled_db = pickle.dumps(db)
 #         db = pickle.loads(pickled_db)
