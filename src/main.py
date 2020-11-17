@@ -1,22 +1,30 @@
+import threading
+
 from game_classes import *
 from client import Client
 from helpers import s_print
 from server import Server
 from const import *
 import time
+import GUI
+from GUI import UI
 
 if __name__ == "__main__":
-    port = 56005
-    server = Server(port)
-    client1 = Client(port)
-    client2 = Client(port)
-    time.sleep(1)
-    client1.send(ACTION=CLIENT_REQUEST_CONNECT)
-    client2.send(ACTION=CLIENT_REQUEST_CONNECT)
-    client1.send(ACTION=CLIENT_REQUEST_DATABASE)
-    time.sleep(1)
-    client1.send(ACTION=CLIENT_REQUEST_TEAM_NAME, obj="Name")
-    client1.send(ACTION=CLIENT_REQUEST_EXIT)
+    ui1 = UI()
+    t1 = threading.Thread(ui1.doshit())
+    t1.start()
+    #port = 56005
+    #server = Server(port)
+    #client1 = Client(port)
+    #client2 = Client(port)
+    #time.sleep(1)
+    #client1.send(ACTION=CLIENT_REQUEST_CONNECT)
+    #client2.send(ACTION=CLIENT_REQUEST_CONNECT)
+    #client1.send(ACTION=CLIENT_REQUEST_DATABASE)
+    #client2.send(ACTION=CLIENT_REQUEST_DATABASE)
+    #time.sleep(1)
+    #client1.send(ACTION=CLIENT_REQUEST_TEAM_NAME, obj="Name")
+    #client1.send(ACTION=CLIENT_REQUEST_EXIT)
 
     # if __name__ == "__main__":
 #         pickled_db = pickle.dumps(db)
