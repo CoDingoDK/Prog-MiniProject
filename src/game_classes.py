@@ -1,3 +1,6 @@
+import csv
+
+
 class Player:
     def __init__(self,
                  player,
@@ -94,3 +97,4 @@ class Database:
                     p.isDrafted = True
                     drafted_player = p
         return drafted_player
+

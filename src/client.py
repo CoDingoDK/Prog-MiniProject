@@ -1,7 +1,8 @@
-import socket, pickle
+import socket
+import pickle
 import threading
 from const import *
-from game_classes import Database, Team
+from game_classes import *
 from helpers import s_print
 from networking_classes import Packet
 
@@ -12,9 +13,9 @@ class Client:
         self.sock = socket.socket()
         self.addr = ('127.0.0.1', port)
         self.sock.connect(self.addr)
-        self.database: [Database] = []
-        self.team: [Team] = []
-        self.enemy_team: [Team] = []
+        self.database = None
+        self.team = None
+        self.enemy_team = None
         self.ongoing_match = None
         self.match_history = None
         self.isRunning = True
@@ -55,10 +56,6 @@ class Client:
             # Team objects requested
             self.team = packet.data[0]
             self.enemy_team = packet.data[1]
-
-        elif packet.ACTION == SERVER_UPDATE_PLAYER_FOR_TEAM:
-            # Database object requested
-            None
         elif packet.ACTION == SERVER_UPDATE_MATCH:
             # Match object requested
             self.ongoing_match = packet.data

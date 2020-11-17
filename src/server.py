@@ -6,20 +6,10 @@ from collections import deque
 
 from const import *
 from game_classes import *
-from helpers import s_print
+from helpers import s_print, setup_database
 from networking_classes import *
 
 
-def _setup_database():
-    with open('res/data.csv', mode='r') as csv_file:
-        csv_reader = csv.DictReader(csv_file)
-        array = []
-        for row in csv_reader:
-            array.append(
-                Player(row["Player"], row["Position"], row["Games"], row["Win rate"], row["KDA"], row["CSM"],
-                       row["GPM"],
-                       row["KP%"], row["DMG%"]))
-        return Database(array)
 
 
 def send_packet(client, ACTION, obj=None):
@@ -37,13 +27,14 @@ class Server:
         self.addr = ('127.0.0.1', port)
         self.sock.bind(('', port))
         self.sock.listen(5)
-        self.database: Database = _setup_database()
+        self.database: Database = setup_database()
         self.clients: [Connection] = []
         self.isRunning = True
-        self.responseThread = threading.Thread(target=self.responder)
-        self.responseThread.start()
+        self.responderThread = threading.Thread(target=self.responder)
+        self.responderThread.setName(f'server responder thread')
+        self.responderThread.start()
         self.receiverThread = threading.Thread(target=self.receiver)
-        self.receiverThread.setName(f'server receiver on port {port}')
+        self.receiverThread.setName(f'server connection-establisher thread')
         self.receiverThread.start()
 
     def receiver(self):
@@ -57,7 +48,7 @@ class Server:
                     # Client requested to connect
                     self.clients.append(client)
                     t = threading.Thread(target=self._on_new_client, args=(client,))
-                    t.setName(f'Server connection receiver thread for client on {addr}')
+                    t.setName(f'Server receiver thread for client on {addr}')
                     t.start()
                     # s_print(f'SERVER: Client added, total amount of clients is now {len(self.clients)}')
 

@@ -1,5 +1,6 @@
 from game_classes import *
 from client import Client
+from helpers import s_print
 from server import Server
 from const import *
 import time
@@ -13,7 +14,6 @@ if __name__ == "__main__":
     client1.send(ACTION=CLIENT_REQUEST_CONNECT)
     client2.send(ACTION=CLIENT_REQUEST_CONNECT)
     client1.send(ACTION=CLIENT_REQUEST_DATABASE)
-    client2.send(ACTION=CLIENT_REQUEST_DATABASE)
     time.sleep(1)
     client1.send(ACTION=CLIENT_REQUEST_TEAM_NAME, obj="Name")
     client1.send(ACTION=CLIENT_REQUEST_EXIT)
