@@ -1,4 +1,4 @@
-import csv
+from tkinter import StringVar
 
 
 class Player:
@@ -42,18 +42,20 @@ class Player:
 class Team:
     def __init__(self, teamname):
         self.roster = []
+        self.credits = 400
         self.teamname = teamname
         self.lanes = ["MID", "TOP", "ADC", "JUNGLE", "SUPPORT"]
 
     def add_to_roster(self, p: Player):
-        # print(f'{p.name} wants to join as {p.position}')
         if self.roster:
             if all(x.position.lower() != p.position.lower() for x in self.roster):
-                # print(f'  This team does not have a {p.position}, adding {p.name}')
-                self.roster.append(p)
+                if p.price <= self.credits:
+                    self.roster.append(p)
+                    self.credits -= p.price
         else:
-            # print(f'  This team does not have a {p.position}, adding {p.name}')
-            self.roster = [p]
+            if p.price <= self.credits:
+                self.roster = [p]
+                self.credits -= p.price
 
     def __str__(self):
         res = ""
@@ -66,11 +68,23 @@ class Team:
     def unoccupied_lanes(self):
         res = []
         for i in self.lanes:
-            if all(i.lower() != p.position.lower() for p in self.roster):
+            if all(i.upper() != p.position.upper() for p in self.roster):
                 res.append(i)
 
         return res
 
+    def get_player_power_from_lanes(self, *lanes):
+        res = []
+        for lane in lanes:
+            for i in self.roster:
+                if lane.upper() == i.position.upper():
+                    res.append(int(i.rating))
+        return res
+
+    def is_ready(self):
+        if len(self.roster) == 5:
+            return True
+        return False
 
 class Database:
     def __init__(self, data: [Player]):
@@ -80,19 +94,27 @@ class Database:
     def get_players_from_lane(self, lane):
         res = []
         for i in self.data:
-            if i.position == lane:
+            if i.position.upper() == lane.upper() and not i.isDrafted:
                 res.append(i)
-        return res.sort(key=lambda p: p.rating, reverse=False)
+        res.sort(key=lambda p: p.rating, reverse=False)
+        return res
 
-    def search_for_player(self, player):
+    def search_for_player(self, player_name):
         for i in self.data:
-            if i.name.lower() == player.lower():
+            if i.name.upper() == player_name.upper():
                 return i
 
     def draft_player(self, player):
+        selected_player = None
+        if isinstance(player, str):
+            selected_player = self.search_for_player(player)
+        elif isinstance(player, Player):
+            selected_player = player
+        else:
+            return selected_player
         drafted_player = None
         for i, p in enumerate(self.data):
-            if p == player:
+            if p == selected_player:
                 if not p.isDrafted:
                     p.isDrafted = True
                     drafted_player = p
