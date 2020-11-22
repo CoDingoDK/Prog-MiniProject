@@ -8,6 +8,7 @@ from helpers import s_print, setup_database
 from networking_classes import *
 from match import start_match
 
+
 class Server:
     def __init__(self, port, debug):
         self.debug = debug
@@ -19,104 +20,118 @@ class Server:
         self.sock.bind(('', port))
         self.sock.listen(5)
         self.database: Database = setup_database()
-        self.clients: [Connection] = []
+        self.connections: [Connection] = []
         self.isRunning = True
-        self.responderThread = threading.Thread(target=self.responder)
-        self.responderThread.setName(f'server responder thread')
-        self.responderThread.start()
-        self.receiverThread = threading.Thread(target=self.receiver)
-        self.receiverThread.setName(f'server connection-establisher thread')
-        self.receiverThread.start()
+        # Create a new thread responsible for responding to requests from clients
+        self.request_responder_thread = threading.Thread(target=self.request_responder)
+        self.request_responder_thread.setName(f'server request responder')
+        self.request_responder_thread.start()
+        # Create a thread responsible for receiving incoming connections
+        self.connection_receiver_thread = threading.Thread(target=self.connection_receiver)
+        self.connection_receiver_thread.setName(f'server connection-receiver')
+        self.connection_receiver_thread.start()
 
-    def send_packet(self,client, ACTION, obj=None):
+    def send_packet(self, client, ACTION, obj=None):
         packet = pickle.dumps(Packet(ACTION, obj))
         if self.debug:
             s_print(f'Packet sent to {client.addr}')
-
         client.client_socket.send(packet)
 
-    def receiver(self):
+    def connection_receiver(self):
         while self.isRunning:
-            if len(self.clients) < 2:
+            # Only accept two connections, then end this loop, which then ends the thread.
+            if len(self.connections) < 2:
+                # Accept a connection
                 c, addr = self.sock.accept()
                 if self.debug:
                     s_print(f'SERVER: Connection received from {addr}')
+                # Receive the first packet
                 packet = pickle.loads(c.recv(50000))
-                client = Connection(c, addr)
-                if packet.ACTION == CLIENT_REQUEST_CONNECT and client not in self.clients:
-                    # Client requested to connect
-                    self.clients.append(client)
-                    t = threading.Thread(target=self._on_new_client, args=(client,))
+                # Create a connection object
+                connection = Connection(c, addr)
+                # Check if it actually is a request to connect, and if the same connection doens't already exist.
+                if packet.ACTION == CLIENT_REQUEST_CONNECT and connection not in self.connections:
+                    self.connections.append(connection)
+                    # Start a thread for this new connection, responsible for receiving data from that client.
+                    t = threading.Thread(target=self.on_new_client, args=(connection,))
                     t.setName(f'Server receiver thread for client on {addr}')
                     t.start()
             else:
                 break
 
-    def responder(self):
+    def request_responder(self):
         while self.isRunning:
+            # if the request queue has items in it
             if self.request_queue:
+                # Pop the leftmost item from the double ended queue, atomic poplefts and appends
+                # ensure chronological order as well as thread-safety.
                 request, connection = self.request_queue.popleft()
-                self._perform_action(request, connection)
+                # Process the request
+                self.perform_action(request, connection)
 
-    def _perform_action(self, packet, client):
-        enemy_client = None
-        for c in self.clients:
-            if client.addr != c.addr:  # Find the enemy team
-                enemy_client = c
+    def perform_action(self, packet, connection):
+        enemy_connection = None
+        for c in self.connections:
+            if connection.addr != c.addr:  # Find the enemy team
+                enemy_connection = c
         if packet.ACTION == CLIENT_REQUEST_DATABASE:
             # Team object requested
             if self.debug:
                 s_print(f'SERVER: Client requested database')
-            self.send_packet(c, SERVER_UPDATE_DATABASE, self.database)
-
-
+            self.send_packet(connection, SERVER_UPDATE_DATABASE, self.database)
         elif packet.ACTION == CLIENT_REQUEST_TEAM_NAME:
-            if client.team is None:  # Cant request a team name if one is already there.
-                client.team = Team(packet.data)
-                self.send_packet(client, SERVER_UPDATE_TEAMS, (client.team, enemy_client.team))
-                self.send_packet(enemy_client, SERVER_UPDATE_TEAMS, (enemy_client.team, client.team))
+            if connection.team is None:  # Cant request a team name if one is already there.
+                connection.team = Team(packet.data)
+                self.send_packet(connection, SERVER_UPDATE_TEAMS, (connection.team, enemy_connection.team))
+                self.send_packet(enemy_connection, SERVER_UPDATE_TEAMS, (enemy_connection.team, connection.team))
             else:
-                self.send_packet(client, SERVER_REQUEST_DENIED, "Couldn't grant team name as team already has one")
+                self.send_packet(connection, SERVER_REQUEST_DENIED, "Couldn't grant team name as team already has one")
 
         elif packet.ACTION == CLIENT_REQUEST_PLAYER_FOR_TEAM:
-            if client.team is not None:
+            if connection.team is not None:
                 drafted_player = self.database.draft_player(packet.data)
                 if drafted_player is not None:
-                    client.team.add_to_roster(drafted_player)
-                    self.send_packet(client, SERVER_UPDATE_TEAMS, (client.team, enemy_client.team))
-                    self.send_packet(enemy_client, SERVER_UPDATE_TEAMS, (enemy_client.team, client.team))
+                    connection.team.add_to_roster(drafted_player)
+                    self.send_packet(connection, SERVER_UPDATE_TEAMS, (connection.team, enemy_connection.team))
+                    self.send_packet(enemy_connection, SERVER_UPDATE_TEAMS, (enemy_connection.team, connection.team))
                 else:
-                    self.send_packet(client, SERVER_REQUEST_DENIED, "tried to draft an already drafted player")
+                    self.send_packet(connection, SERVER_REQUEST_DENIED, "tried to draft an already drafted player")
                     if self.debug:
-                        s_print(f'{client.team.teamname} tried to draft an already drafted player')
+                        s_print(f'{connection.team.teamname} tried to draft an already drafted player')
             else:
-                self.send_packet(client, SERVER_REQUEST_DENIED, "Tried to draft without having a team")
+                self.send_packet(connection, SERVER_REQUEST_DENIED, "Tried to draft without having a team")
                 if self.debug:
-                    s_print(f'{client.addr} tried to draft without having a team')
+                    s_print(f'{connection.addr} tried to draft without having a team')
         elif packet.ACTION == CLIENT_REQUEST_MATCH:
-            if client.team.is_ready() and enemy_client.team.is_ready():
-                combat_log = start_match(client.team, enemy_client.team)
-                self.send_packet(client, SERVER_UPDATE_MATCH, combat_log)
-                self.send_packet(enemy_client, SERVER_UPDATE_MATCH, combat_log)
+            if connection.team.is_ready() and enemy_connection.team.is_ready():
+                combat_log = start_match(connection.team, enemy_connection.team)
+                self.send_packet(connection, SERVER_UPDATE_MATCH, combat_log)
+                self.send_packet(enemy_connection, SERVER_UPDATE_MATCH, combat_log)
             else:
-                self.send_packet(client, SERVER_REQUEST_DENIED, "A team is lacking players")
+                self.send_packet(connection, SERVER_REQUEST_DENIED, "A team is lacking players")
 
-    def _on_new_client(self, connection):
+    def on_new_client(self, connection):
         while self.isRunning:
             try:
+                # Receive data from this client
                 packet = connection.client_socket.recv(50000)
             except ConnectionAbortedError:
                 break
             except ConnectionResetError:
                 break
-            unpickled_packet: Packet = pickle.loads(packet)
+            try:
+                unpickled_packet: Packet = pickle.loads(packet)
+            except EOFError:
+                break
+            # Check if its a request for an exit, before appending it to the request queue.
             if unpickled_packet.ACTION == CLIENT_REQUEST_EXIT:
                 # Client requested to exit
-                for c in self.clients:
+                for c in self.connections:
                     self.send_packet(c, CLIENT_REQUEST_EXIT)
                     c.client_socket.close()
                 self.isRunning = False
                 break
             else:
+                # it isn't, so append it.
                 self.request_queue.append((unpickled_packet, connection))
         connection.client_socket.close()

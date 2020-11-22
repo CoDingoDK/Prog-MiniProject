@@ -38,22 +38,22 @@ def start_match(blue_team, red_team):
     global minutes, combat_log
 
     while check_win_else_powerup():
-        RedJungleEvent = random.randint(0, 9)
+        red_jungle_event = random.randint(0, 9)
         red_gank = 0
 
-        BlueJungleEvent = random.randint(0, 9)
+        blue_jungle_event = random.randint(0, 9)
         blue_gank = 0
 
-        TopEvent = random.randint(0, 9)
-        MidEvent = random.randint(0, 9)
-        BotEvent = random.randint(0, 9)
+        top_event = random.randint(0, 9)
+        mid_event = random.randint(0, 9)
+        bot_event = random.randint(0, 9)
 
         team_fight = random.randint(0, 4)
 
-        if RedJungleEvent > 4:
+        if red_jungle_event > 4:
             red_gank = random.randint(1, 3)
 
-        if BlueJungleEvent > 4:
+        if blue_jungle_event > 4:
             blue_gank = random.randint(1, 3)
 
         if minutes > 15:
@@ -78,7 +78,7 @@ def start_match(blue_team, red_team):
                     blue_tower_health -= (red_top + red_jungle + red_mid + red_bot + red_support)
                     red_kills += 5
 
-        if TopEvent > 6:
+        if top_event > 6:
             if blue_gank == 1 and red_gank != 1:
                 fight_number = random.randint(0, (blue_top + blue_jungle + red_top))
                 if fight_number > red_top:
@@ -126,7 +126,7 @@ def start_match(blue_team, red_team):
                     combat_log.append("Red side top got a kill.")
                     red_kills += 1
 
-        if MidEvent > 6:
+        if mid_event > 6:
             if blue_gank == 2 and red_gank != 2:
                 fight_number = random.randint(0, (blue_mid + blue_jungle + red_mid))
                 if fight_number > red_mid:
@@ -174,7 +174,7 @@ def start_match(blue_team, red_team):
                     combat_log.append("Red side mid got a kill.")
                     red_kills += 1
 
-        if BotEvent > 6:
+        if bot_event > 6:
             if blue_gank == 3 and red_gank != 3:
                 fight_number = random.randint(0, (blue_bot + blue_support + blue_jungle + red_bot + red_support))
                 if fight_number > (red_bot + red_support):
@@ -237,9 +237,9 @@ def start_match(blue_team, red_team):
     return combat_log
 
 def check_win_else_powerup():
-    global red_kills, red_towers, red_nexus_alive, red_team_strength, red_team_dragons, red_tower_health, red_top, red_jungle, red_mid, red_bot, red_support
+    global red_kills, red_towers, red_nexus_alive, red_tower_health, red_top, red_jungle, red_mid, red_bot, red_support
 
-    global blue_kills, blue_towers, blue_nexus_alive, blue_team_strength, blue_team_dragons, blue_tower_health, blue_top, blue_jungle, blue_mid, blue_bot, blue_support
+    global blue_kills, blue_towers, blue_nexus_alive, blue_tower_health, blue_top, blue_jungle, blue_mid, blue_bot, blue_support
 
     global minutes, combat_log
 

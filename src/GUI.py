@@ -1,14 +1,15 @@
 from tkinter import *
 from const import *
 
+
 class UI:
     def __init__(self, window, client, window_name):
         self.window: Tk = window
         self.vars = {
             "team name": StringVar(self.window, "Team A"),
             "enemy team name": StringVar(self.window, "Team B"),
-            "team credits": StringVar(self.window, "500$"),
-            "enemy team credits": StringVar(self.window, "500$"),
+            "team credits": StringVar(self.window, "400$"),
+            "enemy team credits": StringVar(self.window, "400$"),
             "team TOP": StringVar(self.window, "TOP"),
             "team ADC": StringVar(self.window, "ADC"),
             "team MID": StringVar(self.window, "MID"),
@@ -30,7 +31,7 @@ class UI:
         self.combat_log_box = None
         self.window_name = window_name
         self.client = client
-        self.combatlog_frame = None
+        self.combat_log_frame = None
         self.one_time = True
         self.configure_ui()
 
@@ -54,12 +55,13 @@ class UI:
         if self.client is not None:
             if self.client.team is not None:
                 self.vars.get("team name").set(self.client.team.teamname)
-                self.vars.get("team credits").set(self.client.team.credits)
+                self.vars.get("team credits").set(f'{self.client.team.credits}$')
                 for i in self.client.team.roster:
                     self.vars.get(f'team {i.position}').set(i.name.upper())
 
             if self.client.enemy_team is not None:
                 self.vars.get("enemy team name").set(self.client.enemy_team.teamname)
+                self.vars.get("enemy team credits").set(f'{self.client.enemy_team.credits}$')
                 if self.client.enemy_team.roster:
                     for i in self.client.enemy_team.roster:
                         self.vars.get(f'enemy {i.position}').set(i.name.upper())
@@ -78,9 +80,10 @@ class UI:
                 if self.client.team.is_ready() and self.client.enemy_team.is_ready():
                     self.client.send(ACTION=CLIENT_REQUEST_MATCH)
                     self.one_time = False
-                    self.show_frame(self.combatlog_frame)
+                    self.show_frame(self.combat_log_frame)
         if self.combat_log_box.size() == 0 and self.client.combat_log is not None:
-            self.combat_log_box.insert(END, self.client.combat_log)
+            for log in self.client.combat_log:
+                self.combat_log_box.insert(END, log)
 
     def get_laners(self, player_search):
         lane = player_search.get().upper()
@@ -106,8 +109,7 @@ class UI:
         self.window.rowconfigure(0, weight=1)
         self.window.columnconfigure(0, weight=1)
         width = 1280
-        height = 720
-        background= "#313131"
+        background = "#313131"
         font_mini = ('helvetica', 15, 'bold')
         fontsmall = ('helvetica', 30, 'bold')
         fontmed = ('helvetica', 45, 'bold')
@@ -122,14 +124,12 @@ class UI:
         start_frame = Frame(self.window, bg=background)
         teamname_frame = Frame(self.window, bg=background)
         teamroster_frame = Frame(self.window, bg=background)
-        self.combatlog_frame = Frame(self.window, bg=background)
+        self.combat_log_frame = Frame(self.window, bg=background)
 
-        for frame in (start_frame, teamname_frame, teamroster_frame, self.combatlog_frame):
+        for frame in (start_frame, teamname_frame, teamroster_frame, self.combat_log_frame):
             frame.grid(row=0, column=0, sticky='nsew')
 
-
-
-        # -------- Frame 1 - MAIN MENU -----------------------------------------------------------------------------------------
+        # -------- Frame 1 - MAIN MENU ------------------------------------------------------------------------------
         frame1_title = Label(start_frame, text="WELCOME TO\n LEAGUE SIMULATOR", fg=text_white, bg=bghighlight,
                              font=('helvetica', 70, 'bold'))
         frame1_title.place(relx=0.5, y=250, anchor='center')
@@ -137,8 +137,7 @@ class UI:
                              command=lambda: self.show_frame(teamname_frame))
         frame1_PLAY.place(relx=0.5, y=450, anchor='center')
 
-
-        # -------- Frame 2 - TEAM NAME SELECT ----------------------------------------------------------------------------------
+        # -------- Frame 2 - TEAM NAME SELECT -----------------------------------------------------------------------
         choose_teamname = Label(teamname_frame, text='CHOOSE', font=('helvetica', 90, 'bold'), bg='#313131', fg='white')
         choose_teamname.place(relx=0.5, rely=0.23, anchor='center')
         # PAGE TITLE
@@ -153,16 +152,15 @@ class UI:
         teamname_submit_btn.place(relx=0.5, rely=0.62, relwidth=0.3, relheight=0.09, anchor='center')
 
         # -------- Frame 3 - PLAYER SELECT --------------------------------------------------------------------
-        #HEADER
+        # HEADER
         team_select_label = Label(teamroster_frame, text="Player selection".upper(), font=font_large, fg='white', bg=background)
         team_select_label.place(relx=0.5, y=60, anchor="center")
         team_vs_label = Label(teamroster_frame, text='VS.'.upper(), font=font_large, fg=text_white,bg=background)
         team_vs_label.place(x=width/2, anchor="center", y=165)
 
-        #TEAM 1
+        # TEAM 1
         y_base = 300
-        y_plus=70
-        teamone_credits = '400'
+        y_plus = 70
         teamonename_label = Label(teamroster_frame, textvariable=self.vars.get("team name"), font=font_large, fg=textteamone,bg=background)
         teamonename_label.place(x=50, y=125)
         teamone_credits_label = Label(teamroster_frame, textvariable=self.vars.get("team credits"), font=fontmed, fg=textteamone, bg=background)
@@ -178,12 +176,11 @@ class UI:
         sup_label_teamone = Label(teamroster_frame, textvariable=self.vars.get("team SUPPORT"), font=fontsmall, fg=text_white, bg=background)
         sup_label_teamone.place(x=50, y=y_base + y_plus * 4)
 
-
-        #TEAM 2
+        # TEAM 2
         t2x = 900
         teamtwoname_label = Label(teamroster_frame, textvariable=self.vars.get("enemy team name"), font=font_large, fg=textteamtwo,bg=background)
         teamtwoname_label.place(x=t2x,y=125)
-        teamtwo_credits_label = Label(teamroster_frame, text='' + teamone_credits + '$', font=fontmed, fg=textteamtwo, bg=background)
+        teamtwo_credits_label = Label(teamroster_frame, textvariable=self.vars.get("enemy team credits"), font=fontmed, fg=textteamtwo, bg=background)
         teamtwo_credits_label.place(x=t2x, y=y_base - 90)
         top_label_teamtwo = Label(teamroster_frame, textvariable=self.vars.get("enemy TOP"), font=fontsmall, fg=text_white, bg=background)
         top_label_teamtwo.place(x=t2x, y=y_base)
@@ -196,8 +193,7 @@ class UI:
         sup_label_teamtwo = Label(teamroster_frame, textvariable=self.vars.get("enemy SUPPORT"), font=fontsmall, fg=text_white, bg=background)
         sup_label_teamtwo.place(x=t2x, y=y_base + y_plus * 4)
 
-
-        #MIDDLE SECTION
+        # MIDDLE SECTION
         midx = 450
         player_search = Entry(teamroster_frame, font =fontsmall,highlightbackground=background, width=10)
         player_search.place(x=midx, y=230)
@@ -226,17 +222,16 @@ class UI:
         stat6_label.place(x=width/2+50, y=350+200)
 
         # -------- Frame 4 - MATCH PAGE --------------------------------------------------------------------------------
-        teamselect_label = Label(self.combatlog_frame, text="MATCH".upper(), font=font_large, fg='white', bg=background)
+        teamselect_label = Label(self.combat_log_frame, text="MATCH".upper(), font=font_large, fg='white', bg=background)
         teamselect_label.place(relx=0.5, y=60, anchor="center")
-        teamvs_label = Label(self.combatlog_frame, text='VS.'.upper(), font=font_large, fg=text_white, bg=background)
+        teamvs_label = Label(self.combat_log_frame, text='VS.'.upper(), font=font_large, fg=text_white, bg=background)
         teamvs_label.place(x=width/2, anchor="center", y=165)
-        teamonename_label = Label(self.combatlog_frame, textvariable=self.vars.get("team name"), font=font_large, fg=textteamone, bg=background)
+        teamonename_label = Label(self.combat_log_frame, textvariable=self.vars.get("team name"), font=font_large, fg=textteamone, bg=background)
         teamonename_label.place(x=50, y=125)
-        teamtwoname_label = Label(self.combatlog_frame, textvariable=self.vars.get("enemy team name"), font=font_large, fg=textteamtwo, bg=background)
+        teamtwoname_label = Label(self.combat_log_frame, textvariable=self.vars.get("enemy team name"), font=font_large, fg=textteamtwo, bg=background)
         teamtwoname_label.place(x=t2x, y=125)
 
-
-        self.combat_log_box = Listbox(self.combatlog_frame, width=100, height=23, bg='grey', fg=text_white)
+        self.combat_log_box = Listbox(self.combat_log_frame, width=100, height=23, bg='grey', fg=text_white)
         self.combat_log_box.place(relx=0.5, y=450, anchor='center')
 
         self.show_frame(start_frame)

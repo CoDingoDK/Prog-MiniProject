@@ -1,6 +1,3 @@
-from tkinter import StringVar
-
-
 class Player:
     def __init__(self,
                  player,
@@ -8,22 +5,22 @@ class Player:
                  gamecount,
                  winrate,
                  kda,
-                 csPerMin,
-                 GPerMin,
-                 kpPercent,
-                 dmgPercent):
+                 cs_per_min,
+                 g_per_min,
+                 kp_percent,
+                 dmg_percent):
         self.name = player
         self.isDrafted = False
         self.position = position
         self.gamecount = gamecount
         self.winrate = winrate
         self.kda = kda
-        self.csPerMin = csPerMin
-        self.GPerMin = GPerMin
-        self.kpPercent = kpPercent
-        self.dmgPercent = dmgPercent
+        self.csPerMin = cs_per_min
+        self.GPerMin = g_per_min
+        self.kpPercent = kp_percent
+        self.dmgPercent = dmg_percent
         self.rating = round(int(gamecount) * (float(winrate.rstrip("%")) / 100), 2)
-        self.price = 0
+        self.price = int(self.rating)
 
     def player_name(self):
         return self.name
@@ -33,10 +30,13 @@ class Player:
 
     def __str__(self):
         return (
-            f'Name: {self.name:<15} price: {self.price:<3} Rating: {self.rating:<5} Lane: {self.position:<9} Games: {self.gamecount:<5} Winrate: {self.winrate:<7} KDA: {self.kda:<5} CS per min: {self.csPerMin:<5} G per min: {self.GPerMin:<5} Kill Particip.: {self.kpPercent:<5} Dmg%: {self.dmgPercent}')
+            f'Name: {self.name:<15} price: {self.price:<3} Rating: {self.rating:<5} Lane: {self.position:<9} Games: '
+            f'{self.gamecount:<5} Winrate: {self.winrate:<7} KDA: {self.kda:<5} CS per min: {self.csPerMin:<5} '
+            f'G per min: {self.GPerMin:<5} Kill Particip.: {self.kpPercent:<5} Dmg%: {self.dmgPercent}')
 
     def __eq__(self, other):
-        return self.name.lower() == other.name.lower()
+        # object equality is having the same name
+        return self.name.upper() == other.name.upper()
 
 
 class Team:
@@ -48,7 +48,7 @@ class Team:
 
     def add_to_roster(self, p: Player):
         if self.roster:
-            if all(x.position.lower() != p.position.lower() for x in self.roster):
+            if all(x.position.upper() != p.position.upper() for x in self.roster):
                 if p.price <= self.credits:
                     self.roster.append(p)
                     self.credits -= p.price
@@ -86,6 +86,7 @@ class Team:
             return True
         return False
 
+
 class Database:
     def __init__(self, data: [Player]):
         self.data = data
@@ -96,7 +97,7 @@ class Database:
         for i in self.data:
             if i.position.upper() == lane.upper() and not i.isDrafted:
                 res.append(i)
-        res.sort(key=lambda p: p.rating, reverse=False)
+        res.sort(key=lambda p: p.rating, reverse=True)
         return res
 
     def search_for_player(self, player_name):
@@ -119,4 +120,3 @@ class Database:
                     p.isDrafted = True
                     drafted_player = p
         return drafted_player
-
